@@ -1,0 +1,70 @@
+Question1_Query:SELECT film.title AS film_title,
+       category.name AS category_name,
+       COUNT(rental.rental_id) AS rental_count
+FROM category
+JOIN film_category ON category.category_id = film_category.category_id
+JOIN film ON film.film_id=film_category.film_id
+JOIN inventory ON inventory.film_id=film.film_id
+JOIN rental ON rental.inventory_id=inventory.inventory_id
+WHERE category.name IN ('Animation',
+                        'Children',
+                        'Classics',
+                        'Comedy',
+                        'Family',
+                        'Music')
+GROUP BY 1,
+         2
+ORDER BY 2,
+         1Question2_Query:SELECT DATE_PART('month', rental.rental_date) AS Rental_Month,
+       DATE_PART('year', rental.rental_date) AS Rental_Year,
+       store.store_id AS Store,
+       COUNT(*) AS Count_Rental
+FROM store
+JOIN staff ON store.store_id=staff.store_id
+JOIN rental ON staff.staff_id=rental.staff_id
+GROUP BY 1,
+         2,
+         3
+ORDER BY 4 DESC;Question3_Query:SELECT t1.name,
+       t1.standard_quartile,
+       COUNT(t1.standard_quartile)
+FROM
+  (SELECT film.title,
+          category.name,
+          film.rental_duration,
+          NTILE(4) OVER (
+                         ORDER BY film.rental_duration) AS Standard_Quartile
+   FROM film_category
+   JOIN category ON category.category_id = film_category.category_id
+   JOIN film ON film.film_id = film_category.film_id
+   WHERE category.name IN ('Animation',
+                           'Children',
+                           'Classics',
+                           'Comedy',
+                           'Family',
+                           'Music')) t1
+GROUP BY 1,
+         2
+ORDER BY 1,
+         2;
+Question4_Query:SELECT DATE_TRUNC('month', payment.payment_date) pay_month,
+       customer.first_name || ' ' || customer.last_name AS full_name,
+       COUNT(payment.amount) AS pay_countpermon,
+       SUM(payment.amount) AS pay_amount
+FROM customer
+JOIN payment ON payment.customer_id = customer.customer_id
+WHERE customer.first_name || ' ' || customer .last_name IN
+    (SELECT t1.full_name
+     FROM
+       (SELECT customer.first_name || ' ' || customer.last_name AS full_name,
+               SUM(payment.amount) AS amount_total
+        FROM customer
+        JOIN payment ON payment.customer_id = customer.customer_id
+        GROUP BY 1
+        ORDER BY 2 DESC
+        LIMIT 10) t1)
+  AND (payment.payment_date BETWEEN '2007-01-01' AND '2007-12-31')
+GROUP BY 2,
+         1
+ORDER BY 2,
+         1
